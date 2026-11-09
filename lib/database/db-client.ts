@@ -114,6 +114,139 @@ class IntelliDatabase {
     this.persist();
   }
 
+  // --- Atomic Demo Data Re-Seed Engine ---
+  public async resetDemoData(): Promise<{ success: boolean; timestamp: string; message: string }> {
+    const timestamp = new Date().toISOString();
+    
+    // 1. Revert to baseline state
+    this.state = this.getInitialState();
+
+    // 2. Clear operational logs & transactions
+    this.state.conversations = [];
+    this.state.conversation_messages = [];
+    this.state.provisioning_events = [];
+
+    // 3. Ensure baseline entitlements for Alice Chen, Vikram Patel, and Sarah Jenkins
+    const baselineEntitlements: EmployeeAccess[] = [
+      // Alice Chen (Finance)
+      { access_id: 'a0000000-0000-0000-0000-000000000001', employee_id: 'EMP-FIN-002', application_id: 'APP-M365', permission_id: 'PERM-M365-FIN', status: 'ACTIVE', granted_at: new Date(Date.now() - 90 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000002', employee_id: 'EMP-FIN-002', application_id: 'APP-WD', permission_id: 'PERM-WD-BASE', status: 'ACTIVE', granted_at: new Date(Date.now() - 90 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000003', employee_id: 'EMP-FIN-002', application_id: 'APP-SNOW', permission_id: 'PERM-SNOW-ANALYST', status: 'ACTIVE', granted_at: new Date(Date.now() - 60 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000004', employee_id: 'EMP-FIN-002', application_id: 'APP-SAP', permission_id: 'PERM-SAP-READ', status: 'ACTIVE', granted_at: new Date(Date.now() - 90 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000005', employee_id: 'EMP-FIN-002', application_id: 'APP-PBI', permission_id: 'PERM-PBI-FIN', status: 'ACTIVE', granted_at: new Date(Date.now() - 90 * 86400000).toISOString() },
+      // Vikram Patel (IT Lead)
+      { access_id: 'a0000000-0000-0000-0000-000000000020', employee_id: 'EMP-IT-001', application_id: 'APP-JIRA', permission_id: 'PERM-JIRA-AGENT', status: 'ACTIVE', granted_at: new Date(Date.now() - 365 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000021', employee_id: 'EMP-IT-001', application_id: 'APP-M365', permission_id: 'PERM-M365-ADMIN', status: 'ACTIVE', granted_at: new Date(Date.now() - 365 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000022', employee_id: 'EMP-IT-001', application_id: 'APP-AWS', permission_id: 'PERM-AWS-PROD-ADMIN', status: 'ACTIVE', granted_at: new Date(Date.now() - 180 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000023', employee_id: 'EMP-IT-001', application_id: 'APP-GH', permission_id: 'PERM-GH-DEV', status: 'ACTIVE', granted_at: new Date(Date.now() - 365 * 86400000).toISOString() },
+      // Sarah Jenkins (Finance Director)
+      { access_id: 'a0000000-0000-0000-0000-000000000030', employee_id: 'EMP-FIN-001', application_id: 'APP-SAP', permission_id: 'PERM-SAP-CLOSE', status: 'ACTIVE', granted_at: new Date(Date.now() - 365 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000031', employee_id: 'EMP-FIN-001', application_id: 'APP-PBI', permission_id: 'PERM-PBI-FIN', status: 'ACTIVE', granted_at: new Date(Date.now() - 365 * 86400000).toISOString() },
+      { access_id: 'a0000000-0000-0000-0000-000000000032', employee_id: 'EMP-FIN-001', application_id: 'APP-M365', permission_id: 'PERM-M365-FIN', status: 'ACTIVE', granted_at: new Date(Date.now() - 365 * 86400000).toISOString() }
+    ];
+    
+    // Merge or replace
+    for (const b of baselineEntitlements) {
+      const idx = this.state.employee_access.findIndex(x => x.employee_id === b.employee_id && x.permission_id === b.permission_id);
+      if (idx !== -1) {
+        this.state.employee_access[idx] = b;
+      } else {
+        this.state.employee_access.push(b);
+      }
+    }
+
+    // 4. Ensure baseline High-priority IT ticket assigned to Vikram Patel
+    const highPriTicket: Ticket = {
+      ticket_id: 'TCK-IT-BASELINE-01',
+      employee_id: 'EMP-FIN-002',
+      title: 'Production VPN Gateway Latency & DNS Resolution Drops',
+      description: 'Multiple financial analysts experiencing SSL handshake failure during ERP settlement runs.',
+      category: 'VPN',
+      priority: 'P2',
+      impact: 'HIGH',
+      urgency: 'HIGH',
+      assigned_team: 'Network and Security Team',
+      assigned_agent: 'EMP-IT-001',
+      status: 'IN_PROGRESS',
+      resolution_notes: 'Investigating gateway failover route and primary radius authentication server.',
+      created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+      sla_due_at: new Date(Date.now() + 2 * 3600000).toISOString(),
+    };
+    const tIdx = this.state.tickets.findIndex(x => x.ticket_id === highPriTicket.ticket_id);
+    if (tIdx !== -1) {
+      this.state.tickets[tIdx] = highPriTicket;
+    } else {
+      this.state.tickets.unshift(highPriTicket);
+    }
+
+    // 5. Ensure pending access request from Alice Chen requiring Sarah Jenkins' approval
+    const pendingReq: AccessRequest = {
+      request_id: 'REQ-DEMO-BASELINE-01',
+      employee_id: 'EMP-FIN-002',
+      application_id: 'APP-SAP',
+      permission_id: 'PERM-SAP-POST',
+      business_justification: 'Q4 financial period journal entries and ledger reconciliation posting approval.',
+      request_type: 'GRANT',
+      risk_level: 'MEDIUM',
+      request_status: 'PENDING_APPROVAL',
+      idempotency_key: 'IDEMP-DEMO-RESET-ALICE-SAP-01',
+      current_approval_stage: 1,
+      total_stages_required: 1,
+      created_at: new Date(Date.now() - 3 * 3600000).toISOString(),
+    };
+    const rIdx = this.state.access_requests.findIndex(x => x.request_id === pendingReq.request_id);
+    if (rIdx !== -1) {
+      this.state.access_requests[rIdx] = pendingReq;
+    } else {
+      this.state.access_requests.unshift(pendingReq);
+    }
+
+    const pendingApproval: Approval = {
+      approval_id: 'b0000000-0000-0000-0000-000000000001',
+      request_id: 'REQ-DEMO-BASELINE-01',
+      approver_id: 'EMP-FIN-001',
+      approval_type: 'MANAGER',
+      stage_number: 1,
+      approval_status: 'PENDING',
+      comments: 'Awaiting managerial review for journal entry posting entitlement.',
+      created_at: new Date(Date.now() - 3 * 3600000).toISOString(),
+    };
+    const aIdx = this.state.approvals.findIndex(x => x.approval_id === pendingApproval.approval_id);
+    if (aIdx !== -1) {
+      this.state.approvals[aIdx] = pendingApproval;
+    } else {
+      this.state.approvals.unshift(pendingApproval);
+    }
+
+    // 6. Append initial DEMO_DATA_RESET audit log
+    const resetLog: AuditLog = {
+      log_id: `log-reset-${Date.now()}`,
+      actor_id: 'ADMIN-RESET-ENGINE',
+      actor_type: 'SYSTEM',
+      action: 'DEMO_DATA_RESET',
+      entity_type: 'ORGANIZATION_STATE',
+      entity_id: 'NORTHSTAR-TECH',
+      outcome: 'SUCCESS',
+      reason: 'Full atomic re-seed performed: operational records reset to baseline state.',
+      correlation_id: `CORR-RESET-${Date.now()}`,
+      metadata: {
+        environment: 'DEMO',
+        initiator: 'One-Click Demo Re-Seed Engine',
+        reset_scope: 'FULL_OPERATIONAL_RESET'
+      },
+      timestamp
+    };
+    this.state.audit_logs.unshift(resetLog);
+
+    this.persist();
+
+    return {
+      success: true,
+      timestamp,
+      message: 'Demo data successfully reset to clean baseline state.'
+    };
+  }
+
   // --- Profiles ---
   public async getProfiles(): Promise<Profile[]> {
     return [...this.state.profiles];
@@ -122,6 +255,16 @@ class IntelliDatabase {
   public async getProfile(employeeId: string): Promise<Profile | null> {
     const p = this.state.profiles.find(x => x.employee_id.toLowerCase() === employeeId.toLowerCase());
     return p ? { ...p } : null;
+  }
+
+  public async createProfile(profile: Profile): Promise<Profile> {
+    const existing = this.state.profiles.find(x => x.employee_id.toLowerCase() === profile.employee_id.toLowerCase());
+    if (existing) {
+      return { ...existing };
+    }
+    this.state.profiles.push(profile);
+    this.persist();
+    return { ...profile };
   }
 
   public async updateProfile(employeeId: string, updates: Partial<Profile>): Promise<Profile | null> {

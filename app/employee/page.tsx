@@ -7,6 +7,7 @@ import {
   FileText, ExternalLink, UserCheck, HelpCircle
 } from 'lucide-react';
 import { usePersona } from '@/components/layout/PersonaContext';
+import { AgentExecutionTracker } from '@/components/AgentExecutionTracker';
 
 interface ChatMessage {
   id: string;
@@ -178,6 +179,9 @@ How can I help you today?`,
           </button>
         </div>
       </div>
+
+      {/* Multi-Agent Execution & Latency Telemetry HUD */}
+      <AgentExecutionTracker defaultExpanded={true} />
 
       {/* Main Grid: Chat Assistant on Left, Records & Status on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

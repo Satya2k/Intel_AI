@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Bot, LifeBuoy, ShieldCheck, CheckSquare, BarChart3, 
-  History, Users, ChevronDown, UserCircle2, Layers 
+  History, Users, ChevronDown, UserCircle2, Layers, Terminal 
 } from 'lucide-react';
 import { usePersona, DEMO_PERSONAS } from './PersonaContext';
+import { ResetDemoButton } from '../ResetDemoButton';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -22,6 +23,7 @@ export function Navbar() {
     { href: '/lifecycle', label: 'Lifecycle (JML)', icon: Users },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/audit', label: 'Audit Trail', icon: History },
+    { href: '/tests', label: 'Guardrail Tests', icon: Terminal },
   ];
 
   return (
@@ -65,12 +67,16 @@ export function Navbar() {
             </nav>
           </div>
 
-          {/* Persona Switcher Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-left transition-all"
-            >
+          {/* Right Header Actions: Reset Demo Button & Persona Switcher */}
+          <div className="flex items-center gap-2.5">
+            <ResetDemoButton />
+
+            {/* Persona Switcher Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-left transition-all"
+              >
               <div className="w-7 h-7 rounded-md bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xs font-bold">
                 {currentPersona.avatarInitials}
               </div>
@@ -123,6 +129,7 @@ export function Navbar() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>

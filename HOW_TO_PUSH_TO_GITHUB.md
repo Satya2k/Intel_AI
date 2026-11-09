@@ -75,3 +75,4 @@ If you do not want to use Git commands:
 | **Academic Reports** | `IntelliDesk_AI_Academic_Project_Report.docx`, `Project_Report_Format_Completed.docx`, `Group04_IntelliDesk_AI.pdf` | Calibrated 40-page academic project reports in Word and PDF |
 | **Configuration** | `package.json`, `tsconfig.json`, `tailwind.config.ts`, `.gitignore`, `.env.example` | Production package configs & safe environment template |
 | **Guides & Docs** | `README.md`, `DEPLOYMENT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `TESTING.md`, `DEMO_SCRIPT.md` | Full architecture and deployment manuals |
+

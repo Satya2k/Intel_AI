@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Bot, ShieldCheck, LifeBuoy, CheckSquare, BarChart3, 
   Users, ArrowRight, Sparkles, Database, CheckCircle2, 
-  AlertTriangle, Lock, Cpu
+  AlertTriangle, Lock, Cpu, Terminal, Activity 
 } from 'lucide-react';
 import { usePersona, DEMO_PERSONAS } from '@/components/layout/PersonaContext';
 
@@ -142,9 +142,23 @@ export default function LandingPage() {
                     <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
                     Live Analytics Dashboard
                   </div>
-                  <div className="text-[11px] text-blue-400/80">Real DB Aggregations</div>
+                  <div className="text-[11px] text-blue-400/80">Real DB Aggregations & CSVs</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-blue-400 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+
+              <Link
+                href="/tests"
+                className="p-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-between text-left transition-all group sm:col-span-2 lg:col-span-1"
+              >
+                <div>
+                  <div className="text-xs font-bold text-emerald-300 group-hover:text-emerald-200 flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                    Guardrail Test Harness (/tests)
+                  </div>
+                  <div className="text-[11px] text-emerald-400/80">20 Deterministic Unit Tests</div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-400 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
           </div>

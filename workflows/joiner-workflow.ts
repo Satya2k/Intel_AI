@@ -23,8 +23,7 @@ export async function executeJoinerWorkflow(input: JoinerEventInput) {
   // 1. Create or ensure profile exists in database
   let profile = await db.getProfile(input.employee_id);
   if (!profile) {
-    const profiles = await db.getProfiles();
-    const newProfile = {
+    profile = await db.createProfile({
       user_id: `u-${Date.now()}`,
       employee_id: input.employee_id,
       full_name: input.full_name,
@@ -36,9 +35,7 @@ export async function executeJoinerWorkflow(input: JoinerEventInput) {
       application_role: 'EMPLOYEE' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    };
-    profiles.push(newProfile);
-    profile = newProfile;
+    });
   }
 
   // 2. Identify baseline role entitlements for this role/department
