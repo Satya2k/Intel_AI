@@ -194,3 +194,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION reset_demo_data() IS 'Atomically resets Northstar Technologies operational demo data to pristine baseline state';
+

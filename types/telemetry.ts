@@ -44,3 +44,4 @@ export interface ExecutionTelemetrySession {
   startedAt: number;
   completedAt?: number;
 }
+
