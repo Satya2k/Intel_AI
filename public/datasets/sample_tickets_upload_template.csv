@@ -1,0 +1,11 @@
+ticket_id,title,category,priority,status,employee_id,requester_name,department,assigned_team
+TICK-NEW-01,Cisco AnyConnect VPN disconnected after standby,VPN,P2,OPEN,EMP-001,Aarav Sharma,Engineering,VPN Support Team
+TICK-NEW-02,Outlook 365 mailbox synchronization stalled,Email,P3,OPEN,EMP-002,Elena Rostova,Finance,Service Desk Tier-1
+TICK-NEW-03,Laptop docking station dual screen flickering,Hardware,P4,OPEN,EMP-003,Marcus Vance,Marketing,Service Desk Tier-1
+TICK-NEW-04,SAP S/4HANA T-Code authorization failure in FICO,ERP & SAP,P2,OPEN,EMP-002,Elena Rostova,Finance,ERP Support Team
+TICK-NEW-05,Okta MFA push notification expired on iPhone,Security,P2,OPEN,EMP-005,Vikram Malhotra,Engineering,Security Support Team
+TICK-NEW-06,Wi-Fi 802.1x corporate network credential rejection,Network,P3,OPEN,EMP-006,Sarah Jenkins,Finance,Network Support Team
+TICK-NEW-07,Power BI scheduled report dataset gateway failure,Software,P3,OPEN,EMP-007,David Kim,Marketing,Service Desk Tier-1
+TICK-NEW-08,Active Directory account locked after 3 attempts,Password,P2,RESOLVED,EMP-008,Lisa Wang,Operations,Service Desk Tier-1
+TICK-NEW-09,CrowdStrike endpoint agent quarantined legitimate tool,Security,P1,OPEN,EMP-001,Aarav Sharma,Engineering,Security Support Team
+TICK-NEW-10,Network shared drive \\nas.northstar inaccessible,Network,P3,RESOLVED,EMP-004,Chloe Bennett,Operations,Network Support Team

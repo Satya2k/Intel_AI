@@ -1,0 +1,51 @@
+employee_id,full_name,email,department,designation,manager_id,status
+EMP-001,Aarav Sharma,aarav.sharma@northstar.internal,Engineering,Senior Software Engineer,EMP-005,ACTIVE
+EMP-002,Elena Rostova,elena.rostova@northstar.internal,Finance,Senior Financial Analyst,EMP-006,ACTIVE
+EMP-003,Marcus Vance,marcus.vance@northstar.internal,Marketing,Marketing Specialist,EMP-007,ACTIVE
+EMP-004,Chloe Bennett,chloe.bennett@northstar.internal,Operations,Supply Chain Analyst,EMP-008,TERMINATED
+EMP-005,Vikram Malhotra,vikram.malhotra@northstar.internal,Engineering,Director of Engineering,EXEC-001,ACTIVE
+EMP-006,Sarah Jenkins,sarah.jenkins@northstar.internal,Finance,Finance Director,EXEC-001,ACTIVE
+EMP-007,David Kim,david.kim@northstar.internal,Marketing,Chief Marketing Officer,EXEC-001,ACTIVE
+EMP-008,Lisa Wang,lisa.wang@northstar.internal,Operations,Operations VP,EXEC-001,ACTIVE
+EMP-009,James Wilson,james.wilson@northstar.internal,Human Resources,HR Generalist,EMP-010,ACTIVE
+EMP-010,Rachel Green,rachel.green@northstar.internal,Human Resources,Head of People,EXEC-001,ACTIVE
+EMP-011,Carlos Gomez,carlos.gomez@northstar.internal,Engineering,DevOps Engineer,EMP-005,ACTIVE
+EMP-012,Priya Nair,priya.nair@northstar.internal,Finance,Accountant,EMP-006,ACTIVE
+EMP-013,Tom Miller,tom.miller@northstar.internal,Operations,Logistics Coordinator,EMP-008,ACTIVE
+EMP-014,Emily Davis,emily.davis@northstar.internal,Marketing,Content Strategist,EMP-007,ACTIVE
+EMP-015,Lucas Brown,lucas.brown@northstar.internal,Engineering,Frontend Developer,EMP-005,ACTIVE
+EMP-016,Ananya Gupta,ananya.gupta@northstar.internal,Finance,Budget Analyst,EMP-006,ACTIVE
+EMP-017,Zack Taylor,zack.taylor@northstar.internal,Security,Security Analyst,EMP-018,ACTIVE
+EMP-018,Robert Stark,robert.stark@northstar.internal,Security,CISO,EXEC-001,ACTIVE
+EMP-019,Maya Lin,maya.lin@northstar.internal,Engineering,Cloud Architect,EMP-005,ACTIVE
+EMP-020,Kevin Zhang,kevin.zhang@northstar.internal,Operations,Inventory Manager,EMP-008,ACTIVE
+EMP-021,Synthetic Employee 21,employee21@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-022,Synthetic Employee 22,employee22@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-023,Synthetic Employee 23,employee23@northstar.internal,Marketing,Marketing Specialist,EMP-007,ACTIVE
+EMP-024,Synthetic Employee 24,employee24@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-025,Synthetic Employee 25,employee25@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-026,Synthetic Employee 26,employee26@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-027,Synthetic Employee 27,employee27@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-028,Synthetic Employee 28,employee28@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-029,Synthetic Employee 29,employee29@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-030,Synthetic Employee 30,employee30@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-031,Synthetic Employee 31,employee31@northstar.internal,Operations,Operations Specialist,EMP-008,ACTIVE
+EMP-032,Synthetic Employee 32,employee32@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-033,Synthetic Employee 33,employee33@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-034,Synthetic Employee 34,employee34@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-035,Synthetic Employee 35,employee35@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-036,Synthetic Employee 36,employee36@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-037,Synthetic Employee 37,employee37@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-038,Synthetic Employee 38,employee38@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-039,Synthetic Employee 39,employee39@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-040,Synthetic Employee 40,employee40@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-041,Synthetic Employee 41,employee41@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-042,Synthetic Employee 42,employee42@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-043,Synthetic Employee 43,employee43@northstar.internal,Operations,Operations Specialist,EMP-008,ACTIVE
+EMP-044,Synthetic Employee 44,employee44@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-045,Synthetic Employee 45,employee45@northstar.internal,Operations,Operations Specialist,EMP-008,ACTIVE
+EMP-046,Synthetic Employee 46,employee46@northstar.internal,Human Resources,Human Resources Specialist,EMP-010,ACTIVE
+EMP-047,Synthetic Employee 47,employee47@northstar.internal,Marketing,Marketing Specialist,EMP-007,ACTIVE
+EMP-048,Synthetic Employee 48,employee48@northstar.internal,Engineering,Engineering Specialist,EMP-005,ACTIVE
+EMP-049,Synthetic Employee 49,employee49@northstar.internal,Finance,Finance Specialist,EMP-006,ACTIVE
+EMP-050,Synthetic Employee 50,employee50@northstar.internal,Operations,Operations Specialist,EMP-008,ACTIVE
