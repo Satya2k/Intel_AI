@@ -18,7 +18,25 @@ export type TicketCategory =
 export type TicketPriority = 'P1' | 'P2' | 'P3' | 'P4';
 export type TicketImpact = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type TicketUrgency = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'AWAITING_USER' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+
+// Comprehensive 11 ITIL/Enterprise Ticket States (with backward-compatible aliases)
+export type TicketStatus = 
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'AI_TRIAGED'
+  | 'ASSIGNED'
+  | 'IN_PROGRESS'
+  | 'PENDING_USER'
+  | 'PENDING_VENDOR'
+  | 'RESOLVED'
+  | 'CLOSED'
+  | 'CANCELLED'
+  | 'REOPENED'
+  | 'OPEN'            // alias for SUBMITTED
+  | 'AWAITING_USER'   // alias for PENDING_USER
+  | 'ESCALATED';      // incident escalation state
+
+export type SLAState = 'MET' | 'AT_RISK' | 'BREACHED' | 'PENDING';
 
 export type RequestType = 'GRANT' | 'REVOKE' | 'ELEVATION';
 export type RequestStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'PROVISIONED' | 'FAILED' | 'REVOKED';
@@ -89,6 +107,19 @@ export interface EmployeeAccess {
   revocation_reason?: string | null;
 }
 
+export interface MultiTargetSLA {
+  ack_sla_minutes: number;
+  assignment_sla_minutes: number;
+  restoration_sla_hours: number;
+  resolution_sla_hours: number;
+  ack_due_at: string;
+  assigned_due_at: string;
+  restoration_due_at: string;
+  resolution_due_at: string;
+  ack_status: SLAState;
+  resolution_status: SLAState;
+}
+
 export interface Ticket {
   ticket_id: string;
   employee_id: string;
@@ -105,6 +136,14 @@ export interface Ticket {
   created_at: string;
   resolved_at?: string | null;
   sla_due_at: string;
+  // Multi-target SLAs
+  ack_at?: string | null;
+  assigned_at?: string | null;
+  restored_at?: string | null;
+  ack_sla_due_at?: string;
+  sla_status?: SLAState;
+  linked_problem_id?: string | null;
+  is_major_incident?: boolean;
 }
 
 export interface AccessRequest {
@@ -202,3 +241,114 @@ export interface AuditLog {
   timestamp: string;
 }
 
+// -------------------------------------------------------------
+// INTELLIDESK 2.0 ENTERPRISE EXTENSIONS
+// -------------------------------------------------------------
+
+export type EmailDeliveryStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'LOGGED_CONSOLE';
+export type NotificationType = 
+  | 'TICKET_CREATED'
+  | 'TICKET_ASSIGNED'
+  | 'TICKET_STATUS_CHANGED'
+  | 'TICKET_SLA_WARNING'
+  | 'TICKET_SLA_BREACHED'
+  | 'APPROVAL_REQUESTED'
+  | 'APPROVAL_COMPLETED'
+  | 'APPROVAL_REJECTED'
+  | 'ACCESS_PROVISIONED'
+  | 'ACCESS_REVOKED'
+  | 'JML_EVENT_PROCESSED'
+  | 'SECURITY_RISK_ALERT'
+  | 'MAJOR_INCIDENT_BROADCAST';
+
+export interface NotificationOutboxItem {
+  id: string;
+  recipient_email: string;
+  recipient_name: string;
+  subject: string;
+  notification_type: NotificationType;
+  template_id: string;
+  template_variables: Record<string, unknown>;
+  delivery_status: EmailDeliveryStatus;
+  attempts: number;
+  last_error?: string | null;
+  idempotency_key: string;
+  entity_type?: string;
+  entity_id?: string;
+  created_at: string;
+  dispatched_at?: string | null;
+}
+
+export interface InAppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  notification_type: NotificationType;
+  link_url?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface MajorIncident {
+  incident_id: string;
+  title: string;
+  summary: string;
+  severity: 'SEV-1' | 'SEV-2' | 'SEV-3';
+  status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
+  commander_id: string;
+  affected_services: string[];
+  business_impact: string;
+  started_at: string;
+  mitigated_at?: string | null;
+  resolved_at?: string | null;
+  bridge_url?: string;
+  updates: Array<{
+    update_id: string;
+    timestamp: string;
+    author: string;
+    message: string;
+    status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
+  }>;
+}
+
+export interface ProblemRecord {
+  problem_id: string;
+  title: string;
+  description: string;
+  category: TicketCategory;
+  status: 'LOGGED' | 'INVESTIGATING' | 'KNOWN_ERROR' | 'RESOLVED' | 'CLOSED';
+  root_cause?: string;
+  workaround?: string;
+  permanent_fix?: string;
+  related_ticket_ids: string[];
+  owner: string;
+  created_at: string;
+  resolved_at?: string | null;
+}
+
+export interface PrivilegedAccount {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  application_id: string;
+  application_name: string;
+  privileged_role: string;
+  elevation_type: 'PERMANENT' | 'TIME_BOUND_JIT';
+  valid_until?: string | null;
+  mfa_enforced: boolean;
+  last_used_at: string;
+  risk_level: RiskLevel;
+  certification_status: 'CERTIFIED' | 'PENDING_REVIEW' | 'FLAGGED';
+}
+
+export interface RiskIntelligenceReport {
+  overall_score: number; // 0 - 100
+  iam_risk_score: number;
+  operational_risk_score: number;
+  compliance_risk_score: number;
+  high_risk_identities_count: number;
+  sla_breach_risk_count: number;
+  stale_privileges_count: number;
+  sod_violations_count: number;
+}

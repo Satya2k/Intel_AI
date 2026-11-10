@@ -119,3 +119,4 @@ Once pushed to GitHub:
    - `DEMO_MODE` = `true`
    - `NEXT_PUBLIC_DEMO_MODE` = `true`
 4. Click **Deploy**. Your site will be live online with automatic HTTPS in ~45 seconds!
+

@@ -84,7 +84,7 @@ export function AgentExecutionTracker({
                 ? `${elapsedMs}ms`
                 : session.totalDurationMs > 0
                 ? `${session.totalDurationMs}ms (total)`
-                : '0ms'}
+                : 'IDLE'}
             </span>
           </div>
 

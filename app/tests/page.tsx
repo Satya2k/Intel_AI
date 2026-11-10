@@ -36,7 +36,7 @@ export default function TestHarnessPage() {
     passed: 0,
     failed: 0,
     avgLatencyMs: 0,
-    complianceScore: 100,
+    complianceScore: 0,
     executedAt: null,
   });
 
@@ -144,7 +144,7 @@ export default function TestHarnessPage() {
       passed: 0,
       failed: 0,
       avgLatencyMs: 0,
-      complianceScore: 100,
+      complianceScore: 0,
       executedAt: null,
     });
     setExpandedRows({});
@@ -269,7 +269,7 @@ export default function TestHarnessPage() {
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-bold font-mono text-indigo-400">
-              {reportSummary.passed > 0 ? `${reportSummary.complianceScore}%` : '100%'}
+              {reportSummary.executedAt ? `${reportSummary.complianceScore}%` : 'N/A'}
             </span>
             <span className="text-[10px] text-emerald-500 font-medium">SOC 2 / ISO 27001</span>
           </div>

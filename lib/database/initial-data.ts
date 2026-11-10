@@ -1,6 +1,7 @@
 import { 
   Profile, Application, Role, RolePermission, EmployeeAccess, 
-  Ticket, AccessRequest, Approval, ProvisioningEvent, AuditLog 
+  Ticket, AccessRequest, Approval, ProvisioningEvent, AuditLog,
+  MajorIncident, ProblemRecord, PrivilegedAccount, InAppNotification, NotificationOutboxItem
 } from './types';
 
 export const INITIAL_PROFILES: Profile[] = [
@@ -1137,4 +1138,228 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     timestamp: new Date(Date.now() - 30 * 86400000).toISOString()
   }
 ];
+
+export const INITIAL_MAJOR_INCIDENTS: MajorIncident[] = [
+  {
+    incident_id: 'INC-MAJ-2026-001',
+    title: 'SAP ERP Production Transaction Lockout & Latency Spike',
+    summary: 'Database connection pool starvation triggered by batch billing run causing global order processing failure.',
+    severity: 'SEV-1',
+    status: 'IDENTIFIED',
+    commander_id: 'EMP-IT-001',
+    affected_services: ['SAP S/4HANA', 'Billing Gateway', 'Warehouse EDI'],
+    business_impact: 'Quarterly financial close halted; North America billing delayed by ~4 hours.',
+    started_at: new Date(Date.now() - 3 * 3600000).toISOString(),
+    mitigated_at: null,
+    resolved_at: null,
+    bridge_url: 'https://bridge.northstar-tech.internal/war-room-sev1',
+    updates: [
+      {
+        update_id: 'upd-001',
+        timestamp: new Date(Date.now() - 2.5 * 3600000).toISOString(),
+        author: 'Vikram Patel (Incident Commander)',
+        message: 'SEV-1 declared. War room established. DBA team isolating long-running invoice locking queries.',
+        status: 'INVESTIGATING'
+      },
+      {
+        update_id: 'upd-002',
+        timestamp: new Date(Date.now() - 1 * 3600000).toISOString(),
+        author: 'Sarah Jenkins (Finance Liaison)',
+        message: 'Finance team advised to hold manual reconciliation until database vacuum finishes.',
+        status: 'IDENTIFIED'
+      }
+    ]
+  },
+  {
+    incident_id: 'INC-MAJ-2026-002',
+    title: 'EMEA Regional VPN Gateway BGP Peering Failure',
+    summary: 'Secondary ISP fiber cut caused transient route flap and dropped all remote worker tunnels in Dublin and Frankfurt.',
+    severity: 'SEV-2',
+    status: 'RESOLVED',
+    commander_id: 'EMP-IT-001',
+    affected_services: ['Zscaler Private Access', 'Cisco AnyConnect', 'Frankfurt DC Gateway'],
+    business_impact: '180 EMEA remote staff disconnected for 45 minutes.',
+    started_at: new Date(Date.now() - 26 * 3600000).toISOString(),
+    mitigated_at: new Date(Date.now() - 25 * 3600000).toISOString(),
+    resolved_at: new Date(Date.now() - 24.5 * 3600000).toISOString(),
+    bridge_url: 'https://bridge.northstar-tech.internal/war-room-emea',
+    updates: [
+      {
+        update_id: 'upd-003',
+        timestamp: new Date(Date.now() - 25 * 3600000).toISOString(),
+        author: 'Vikram Patel',
+        message: 'BGP failover to secondary transit completed. User tunnels restored.',
+        status: 'RESOLVED'
+      }
+    ]
+  }
+];
+
+export const INITIAL_PROBLEMS: ProblemRecord[] = [
+  {
+    problem_id: 'PRB-2026-001',
+    title: 'Recurring Cisco AnyConnect DTLS Tunnel Drops post-macOS 14.4 Upgrade',
+    description: 'Clients experiencing handshake timeout after system sleep when Wi-Fi re-authenticates 802.1x.',
+    category: 'VPN',
+    status: 'KNOWN_ERROR',
+    root_cause: 'Known Cisco defect CSCwf98124 with CoreAudio and NetworkExtension thread deadlock in macOS 14.4.',
+    workaround: 'Disable DTLS compression via terminal: defaults write com.cisco.anyconnect.gui DTLSEnabled -bool false',
+    permanent_fix: 'Deploy AnyConnect / Secure Client v5.1.4 MR3 scheduled for next maintenance window.',
+    related_ticket_ids: ['TCK-2026-004', 'TCK-2026-012'],
+    owner: 'Vikram Patel',
+    created_at: new Date(Date.now() - 14 * 86400000).toISOString(),
+    resolved_at: null
+  },
+  {
+    problem_id: 'PRB-2026-002',
+    title: 'Snowflake BI Warehouse Auto-Suspend Spurious Failures',
+    description: 'Finance reporting extracts fail with query cancelled by administrative action during hourly auto-suspend.',
+    category: 'Software',
+    status: 'INVESTIGATING',
+    root_cause: 'Auto-suspend timeout set to 60s while long-running tableau extract queries take 75s.',
+    workaround: 'Increase warehouse AUTO_SUSPEND parameter to 300 seconds for FINANCE_WH.',
+    permanent_fix: 'Refactor nightly dbt models to materialize incremental tables.',
+    related_ticket_ids: ['TCK-2026-005'],
+    owner: 'Elena Rostova',
+    created_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    resolved_at: null
+  }
+];
+
+export const INITIAL_PRIVILEGED_ACCOUNTS: PrivilegedAccount[] = [
+  {
+    id: 'PA-001',
+    employee_id: 'EMP-IT-001',
+    employee_name: 'Vikram Patel',
+    application_id: 'APP-AWS',
+    application_name: 'AWS Cloud Infrastructure',
+    privileged_role: 'AWS AdministratorAccess',
+    elevation_type: 'PERMANENT',
+    valid_until: null,
+    mfa_enforced: true,
+    last_used_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+    risk_level: 'CRITICAL',
+    certification_status: 'CERTIFIED'
+  },
+  {
+    id: 'PA-002',
+    employee_id: 'EMP-SEC-001',
+    employee_name: 'Marcus Vance',
+    application_id: 'APP-OKTA',
+    application_name: 'Okta IAM Gateway',
+    privileged_role: 'Super Admin',
+    elevation_type: 'PERMANENT',
+    valid_until: null,
+    mfa_enforced: true,
+    last_used_at: new Date(Date.now() - 12 * 3600000).toISOString(),
+    risk_level: 'CRITICAL',
+    certification_status: 'CERTIFIED'
+  },
+  {
+    id: 'PA-003',
+    employee_id: 'EMP-FIN-001',
+    employee_name: 'Sarah Jenkins',
+    application_id: 'APP-SAP',
+    application_name: 'SAP S/4HANA Finance',
+    privileged_role: 'SAP S_TABU_DIS (Table Maintenance)',
+    elevation_type: 'TIME_BOUND_JIT',
+    valid_until: new Date(Date.now() + 6 * 3600000).toISOString(),
+    mfa_enforced: true,
+    last_used_at: new Date(Date.now() - 1 * 3600000).toISOString(),
+    risk_level: 'HIGH',
+    certification_status: 'PENDING_REVIEW'
+  },
+  {
+    id: 'PA-004',
+    employee_id: 'EMP-ENG-002',
+    employee_name: 'Elena Rostova',
+    application_id: 'APP-SNOW',
+    application_name: 'Snowflake Enterprise',
+    privileged_role: 'ACCOUNTADMIN',
+    elevation_type: 'TIME_BOUND_JIT',
+    valid_until: new Date(Date.now() + 2 * 3600000).toISOString(),
+    mfa_enforced: true,
+    last_used_at: new Date(Date.now() - 4 * 3600000).toISOString(),
+    risk_level: 'CRITICAL',
+    certification_status: 'FLAGGED'
+  }
+];
+
+export const INITIAL_IN_APP_NOTIFICATIONS: InAppNotification[] = [
+  {
+    id: 'notif-001',
+    user_id: 'EMP-FIN-001',
+    title: 'Approval Required: Snowflake Analyst Access',
+    message: 'Alice Chen has requested Read+Export permissions for Snowflake BI Data Warehouse.',
+    notification_type: 'APPROVAL_REQUESTED',
+    link_url: '/approvals',
+    is_read: false,
+    created_at: new Date(Date.now() - 1 * 3600000).toISOString()
+  },
+  {
+    id: 'notif-002',
+    user_id: 'EMP-IT-001',
+    title: 'Major Incident Escalation: SAP S/4HANA',
+    message: 'SEV-1 declared: Database connection pool starvation affecting NA billing.',
+    notification_type: 'MAJOR_INCIDENT_BROADCAST',
+    link_url: '/incidents',
+    is_read: false,
+    created_at: new Date(Date.now() - 3 * 3600000).toISOString()
+  },
+  {
+    id: 'notif-003',
+    user_id: 'EMP-FIN-002',
+    title: 'Ticket TCK-2026-001 Assigned',
+    message: 'Your ticket has been assigned to Infrastructure Ops team under 4h resolution SLA.',
+    notification_type: 'TICKET_ASSIGNED',
+    link_url: '/employee',
+    is_read: true,
+    created_at: new Date(Date.now() - 20 * 3600000).toISOString()
+  }
+];
+
+export const INITIAL_OUTBOX_ITEMS: NotificationOutboxItem[] = [
+  {
+    id: 'outbox-001',
+    recipient_email: 'sarah.jenkins@northstar-tech.internal',
+    recipient_name: 'Sarah Jenkins',
+    subject: '[Action Required] Approval Pending for Alice Chen - Snowflake Data Warehouse',
+    notification_type: 'APPROVAL_REQUESTED',
+    template_id: 'approval_request',
+    template_variables: {
+      requesterName: 'Alice Chen',
+      appName: 'Snowflake Enterprise',
+      permissionName: 'Data Analyst (Read+Export)',
+      justification: 'Quarterly financial board reporting reconciliation'
+    },
+    delivery_status: 'LOGGED_CONSOLE',
+    attempts: 1,
+    idempotency_key: 'idemp-appr-req-001',
+    entity_type: 'ACCESS_REQUEST',
+    entity_id: 'REQ-2026-001',
+    created_at: new Date(Date.now() - 1 * 3600000).toISOString(),
+    dispatched_at: new Date(Date.now() - 1 * 3600000).toISOString()
+  },
+  {
+    id: 'outbox-002',
+    recipient_email: 'vikram.patel@northstar-tech.internal',
+    recipient_name: 'Vikram Patel',
+    subject: '[SEV-1 ALERT] SAP ERP Production Transaction Lockout',
+    notification_type: 'MAJOR_INCIDENT_BROADCAST',
+    template_id: 'major_incident_alert',
+    template_variables: {
+      incidentId: 'INC-MAJ-2026-001',
+      severity: 'SEV-1',
+      title: 'SAP ERP Production Transaction Lockout & Latency Spike'
+    },
+    delivery_status: 'LOGGED_CONSOLE',
+    attempts: 1,
+    idempotency_key: 'idemp-maj-inc-001',
+    entity_type: 'MAJOR_INCIDENT',
+    entity_id: 'INC-MAJ-2026-001',
+    created_at: new Date(Date.now() - 3 * 3600000).toISOString(),
+    dispatched_at: new Date(Date.now() - 3 * 3600000).toISOString()
+  }
+];
+
 

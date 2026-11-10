@@ -27,6 +27,7 @@ export default function AnalyticsDashboardPage() {
   
   // Download dropdown state
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [activeBiTab, setActiveBiBiTab] = useState<'OPERATIONS' | 'IAM' | 'AI_PERF' | 'COMPLIANCE'>('OPERATIONS');
 
   // Upload modal state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -270,7 +271,61 @@ export default function AnalyticsDashboardPage() {
             <Upload className="w-3.5 h-3.5" />
             Upload CSV
           </button>
+
+          {/* Print / PDF Export Button */}
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-slate-700 transition"
+            title="Export or print executive report"
+          >
+            <FileText className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Print / PDF</span>
+          </button>
         </div>
+      </div>
+
+      {/* 4-Area BI View Selector Tabs */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setActiveBiBiTab('OPERATIONS')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+            activeBiTab === 'OPERATIONS'
+              ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30 font-semibold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          1. Service Desk Operations
+        </button>
+        <button
+          onClick={() => setActiveBiBiTab('IAM')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+            activeBiTab === 'IAM'
+              ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30 font-semibold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          2. Identity & Access Governance
+        </button>
+        <button
+          onClick={() => setActiveBiBiTab('AI_PERF')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+            activeBiTab === 'AI_PERF'
+              ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-semibold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          3. AI Deflection & Accuracy
+        </button>
+        <button
+          onClick={() => setActiveBiBiTab('COMPLIANCE')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+            activeBiTab === 'COMPLIANCE'
+              ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          4. Enterprise Risk & Compliance
+        </button>
       </div>
 
       {/* Dataset Resource Pills Bar */}

@@ -202,7 +202,7 @@ How can I help you today?`,
               </div>
             </div>
             <div className="text-[10px] text-slate-400 font-mono">
-              Model: gemini-1.5-flash
+              Model: gemini-2.5-flash
             </div>
           </div>
 

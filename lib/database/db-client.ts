@@ -3,13 +3,16 @@ import path from 'path';
 import { 
   Profile, Application, Role, RolePermission, EmployeeAccess, 
   Ticket, AccessRequest, Approval, ProvisioningEvent, AuditLog,
-  EmployeeLifecycleEvent, Conversation, ConversationMessage
+  EmployeeLifecycleEvent, Conversation, ConversationMessage,
+  MajorIncident, ProblemRecord, PrivilegedAccount, InAppNotification,
+  NotificationOutboxItem, RiskIntelligenceReport
 } from './types';
 import { 
   INITIAL_PROFILES, INITIAL_APPLICATIONS, INITIAL_ROLES, 
   INITIAL_ROLE_PERMISSIONS, INITIAL_EMPLOYEE_ACCESS, INITIAL_TICKETS, 
   INITIAL_ACCESS_REQUESTS, INITIAL_APPROVALS, INITIAL_PROVISIONING_EVENTS, 
-  INITIAL_AUDIT_LOGS 
+  INITIAL_AUDIT_LOGS, INITIAL_MAJOR_INCIDENTS, INITIAL_PROBLEMS,
+  INITIAL_PRIVILEGED_ACCOUNTS, INITIAL_IN_APP_NOTIFICATIONS, INITIAL_OUTBOX_ITEMS
 } from './initial-data';
 import { KNOWLEDGE_DOCUMENTS, KnowledgeDocument } from './knowledge-data';
 
@@ -28,6 +31,11 @@ interface DatabaseState {
   lifecycle_events: EmployeeLifecycleEvent[];
   conversations: Conversation[];
   conversation_messages: ConversationMessage[];
+  major_incidents: MajorIncident[];
+  problems: ProblemRecord[];
+  privileged_accounts: PrivilegedAccount[];
+  in_app_notifications: InAppNotification[];
+  notification_outbox: NotificationOutboxItem[];
 }
 
 class IntelliDatabase {
@@ -68,6 +76,11 @@ class IntelliDatabase {
       ],
       conversations: [],
       conversation_messages: [],
+      major_incidents: JSON.parse(JSON.stringify(INITIAL_MAJOR_INCIDENTS)),
+      problems: JSON.parse(JSON.stringify(INITIAL_PROBLEMS)),
+      privileged_accounts: JSON.parse(JSON.stringify(INITIAL_PRIVILEGED_ACCOUNTS)),
+      in_app_notifications: JSON.parse(JSON.stringify(INITIAL_IN_APP_NOTIFICATIONS)),
+      notification_outbox: JSON.parse(JSON.stringify(INITIAL_OUTBOX_ITEMS)),
     };
   }
 
@@ -420,6 +433,36 @@ class IntelliDatabase {
     };
     this.state.tickets.unshift(newTicket);
     this.persist();
+
+    // Trigger in-app notification & outbox email record
+    const emp = this.state.profiles.find(p => p.employee_id.toLowerCase() === newTicket.employee_id.toLowerCase());
+    this.addInAppNotification({
+      user_id: newTicket.employee_id,
+      title: `Ticket ${newTicket.ticket_id} Logged`,
+      message: `Your ticket "${newTicket.title}" has been registered and assigned to ${newTicket.assigned_team}.`,
+      notification_type: 'TICKET_CREATED',
+      link_url: '/employee'
+    }).catch(() => {});
+
+    this.queueOutboxNotification({
+      recipient_email: emp?.email || `${newTicket.employee_id.toLowerCase()}@northstar-tech.internal`,
+      recipient_name: emp?.full_name || newTicket.employee_id,
+      subject: `[Ticket Confirmed] ${newTicket.ticket_id}: ${newTicket.title}`,
+      notification_type: 'TICKET_CREATED',
+      template_id: 'ticket_confirmation',
+      template_variables: {
+        ticketId: newTicket.ticket_id,
+        title: newTicket.title,
+        priority: newTicket.priority,
+        category: newTicket.category,
+        assignedTeam: newTicket.assigned_team,
+        slaDueAt: newTicket.sla_due_at
+      },
+      entity_type: 'TICKET',
+      entity_id: newTicket.ticket_id,
+      delivery_status: 'LOGGED_CONSOLE'
+    }).catch(() => {});
+
     return { ...newTicket };
   }
 
@@ -427,6 +470,8 @@ class IntelliDatabase {
     const idx = this.state.tickets.findIndex(x => x.ticket_id === ticketId);
     if (idx === -1) return null;
     
+    const prevStatus = this.state.tickets[idx].status;
+
     // Auto timestamp resolved_at when marked as RESOLVED or CLOSED
     if ((updates.status === 'RESOLVED' || updates.status === 'CLOSED') && !this.state.tickets[idx].resolved_at) {
       updates.resolved_at = new Date().toISOString();
@@ -437,6 +482,39 @@ class IntelliDatabase {
       ...updates,
     };
     this.persist();
+
+    // Status change notification
+    if (updates.status && updates.status !== prevStatus) {
+      const ticket = this.state.tickets[idx];
+      const emp = this.state.profiles.find(p => p.employee_id.toLowerCase() === ticket.employee_id.toLowerCase());
+      
+      this.addInAppNotification({
+        user_id: ticket.employee_id,
+        title: `Ticket ${ticket.ticket_id} Status: ${updates.status}`,
+        message: `Your ticket status is now ${updates.status}. ${updates.resolution_notes ? `Notes: ${updates.resolution_notes}` : ''}`,
+        notification_type: 'TICKET_STATUS_CHANGED',
+        link_url: '/employee'
+      }).catch(() => {});
+
+      if (updates.status === 'RESOLVED' || updates.status === 'CLOSED') {
+        this.queueOutboxNotification({
+          recipient_email: emp?.email || `${ticket.employee_id.toLowerCase()}@northstar-tech.internal`,
+          recipient_name: emp?.full_name || ticket.employee_id,
+          subject: `[Resolved] Ticket ${ticket.ticket_id}: ${ticket.title}`,
+          notification_type: 'TICKET_STATUS_CHANGED',
+          template_id: 'ticket_resolved',
+          template_variables: {
+            ticketId: ticket.ticket_id,
+            title: ticket.title,
+            resolutionNotes: updates.resolution_notes || 'Resolved according to standard IT procedure'
+          },
+          entity_type: 'TICKET',
+          entity_id: ticket.ticket_id,
+          delivery_status: 'LOGGED_CONSOLE'
+        }).catch(() => {});
+      }
+    }
+
     return { ...this.state.tickets[idx] };
   }
 
@@ -483,6 +561,39 @@ class IntelliDatabase {
     };
     this.state.access_requests.unshift(newReq);
     this.persist();
+
+    // Notify manager & queue outbox email
+    const emp = this.state.profiles.find(p => p.employee_id.toLowerCase() === newReq.employee_id.toLowerCase());
+    const app = this.state.applications.find(a => a.application_id === newReq.application_id);
+    const mgrId = emp?.manager_id || 'EMP-FIN-001';
+    const mgr = this.state.profiles.find(p => p.employee_id.toLowerCase() === mgrId.toLowerCase());
+
+    this.addInAppNotification({
+      user_id: mgrId,
+      title: `Access Approval Required`,
+      message: `${emp?.full_name || newReq.employee_id} requested access to ${app?.application_name || newReq.application_id}.`,
+      notification_type: 'APPROVAL_REQUESTED',
+      link_url: '/approvals'
+    }).catch(() => {});
+
+    this.queueOutboxNotification({
+      recipient_email: mgr?.email || 'manager@northstar-tech.internal',
+      recipient_name: mgr?.full_name || 'Approving Manager',
+      subject: `[Action Required] Approval for ${emp?.full_name || newReq.employee_id}: ${app?.application_name || newReq.application_id}`,
+      notification_type: 'APPROVAL_REQUESTED',
+      template_id: 'approval_request',
+      template_variables: {
+        requestId: newReq.request_id,
+        requesterName: emp?.full_name || newReq.employee_id,
+        appName: app?.application_name || newReq.application_id,
+        permission: newReq.permission_id,
+        justification: newReq.business_justification
+      },
+      entity_type: 'ACCESS_REQUEST',
+      entity_id: newReq.request_id,
+      delivery_status: 'LOGGED_CONSOLE'
+    }).catch(() => {});
+
     return { ...newReq };
   }
 
@@ -542,6 +653,39 @@ class IntelliDatabase {
       approved_at: updates.approval_status !== 'PENDING' ? (updates.approved_at || new Date().toISOString()) : null,
     };
     this.persist();
+
+    // Notify requester upon decision
+    if (updates.approval_status === 'APPROVED' || updates.approval_status === 'REJECTED') {
+      const appr = this.state.approvals[idx];
+      const req = this.state.access_requests.find(r => r.request_id === appr.request_id);
+      if (req) {
+        const emp = this.state.profiles.find(p => p.employee_id.toLowerCase() === req.employee_id.toLowerCase());
+        this.addInAppNotification({
+          user_id: req.employee_id,
+          title: `Access Request ${updates.approval_status}`,
+          message: `Your access request ${req.request_id} for ${req.application_id} was ${updates.approval_status.toLowerCase()}.`,
+          notification_type: updates.approval_status === 'APPROVED' ? 'APPROVAL_COMPLETED' : 'APPROVAL_REJECTED',
+          link_url: '/iam'
+        }).catch(() => {});
+
+        this.queueOutboxNotification({
+          recipient_email: emp?.email || `${req.employee_id.toLowerCase()}@northstar-tech.internal`,
+          recipient_name: emp?.full_name || req.employee_id,
+          subject: `[Update] Access Request ${req.request_id}: ${updates.approval_status}`,
+          notification_type: updates.approval_status === 'APPROVED' ? 'APPROVAL_COMPLETED' : 'APPROVAL_REJECTED',
+          template_id: updates.approval_status === 'APPROVED' ? 'approval_approved' : 'approval_rejected',
+          template_variables: {
+            requestId: req.request_id,
+            status: updates.approval_status,
+            comments: updates.comments || 'Reviewed in governance portal'
+          },
+          entity_type: 'ACCESS_REQUEST',
+          entity_id: req.request_id,
+          delivery_status: 'LOGGED_CONSOLE'
+        }).catch(() => {});
+      }
+    }
+
     return { ...this.state.approvals[idx] };
   }
 
@@ -716,7 +860,7 @@ class IntelliDatabase {
     const jmlEvents = this.state.lifecycle_events;
 
     const totalTickets = tickets.length;
-    const openTickets = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || t.status === 'AWAITING_USER').length;
+    const openTickets = tickets.filter(t => t.status !== 'RESOLVED' && t.status !== 'CLOSED' && t.status !== 'CANCELLED').length;
     const resolvedTickets = tickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
     const criticalTickets = tickets.filter(t => t.priority === 'P1').length;
 
@@ -906,6 +1050,365 @@ class IntelliDatabase {
     ];
     return rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
   }
+
+  // =========================================================================
+  // INTELLIDESK 2.0 ENTERPRISE EXTENSIONS: NOTIFICATIONS & OUTBOX
+  // =========================================================================
+
+  public async getInAppNotifications(userId?: string): Promise<InAppNotification[]> {
+    let notifs = [...this.state.in_app_notifications];
+    if (userId) {
+      notifs = notifs.filter(n => n.user_id.toLowerCase() === userId.toLowerCase() || n.user_id === 'ALL');
+    }
+    return notifs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  public async markNotificationRead(notificationId: string): Promise<boolean> {
+    const idx = this.state.in_app_notifications.findIndex(n => n.id === notificationId);
+    if (idx !== -1) {
+      this.state.in_app_notifications[idx].is_read = true;
+      this.persist();
+      return true;
+    }
+    return false;
+  }
+
+  public async markAllNotificationsRead(userId?: string): Promise<boolean> {
+    let updated = false;
+    for (const n of this.state.in_app_notifications) {
+      if (!userId || n.user_id.toLowerCase() === userId.toLowerCase() || n.user_id === 'ALL') {
+        n.is_read = true;
+        updated = true;
+      }
+    }
+    if (updated) this.persist();
+    return updated;
+  }
+
+  public async addInAppNotification(notification: Omit<InAppNotification, 'id' | 'created_at' | 'is_read'> & { is_read?: boolean }): Promise<InAppNotification> {
+    const newNotif: InAppNotification = {
+      ...notification,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      is_read: notification.is_read ?? false,
+      created_at: new Date().toISOString()
+    };
+    this.state.in_app_notifications.unshift(newNotif);
+    this.persist();
+    return { ...newNotif };
+  }
+
+  public async getOutboxItems(filter?: { status?: string; entityType?: string }): Promise<NotificationOutboxItem[]> {
+    let items = [...this.state.notification_outbox];
+    if (filter?.status) {
+      items = items.filter(x => x.delivery_status === filter.status);
+    }
+    if (filter?.entityType) {
+      items = items.filter(x => x.entity_type === filter.entityType);
+    }
+    return items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  public async queueOutboxNotification(item: Omit<NotificationOutboxItem, 'id' | 'created_at' | 'attempts' | 'delivery_status' | 'idempotency_key'> & Partial<NotificationOutboxItem>): Promise<NotificationOutboxItem> {
+    // Idempotency check
+    if (item.idempotency_key) {
+      const existing = this.state.notification_outbox.find(x => x.idempotency_key === item.idempotency_key);
+      if (existing) {
+        return { ...existing };
+      }
+    }
+
+    const newItem: NotificationOutboxItem = {
+      id: `outbox-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      recipient_email: item.recipient_email,
+      recipient_name: item.recipient_name,
+      subject: item.subject,
+      notification_type: item.notification_type,
+      template_id: item.template_id,
+      template_variables: item.template_variables || {},
+      delivery_status: item.delivery_status || 'QUEUED',
+      attempts: item.attempts || 0,
+      idempotency_key: item.idempotency_key || `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      entity_type: item.entity_type,
+      entity_id: item.entity_id,
+      created_at: new Date().toISOString(),
+      dispatched_at: item.dispatched_at || null,
+      last_error: item.last_error || null
+    };
+
+    this.state.notification_outbox.unshift(newItem);
+    this.persist();
+    return { ...newItem };
+  }
+
+  public async updateOutboxItem(id: string, updates: Partial<NotificationOutboxItem>): Promise<NotificationOutboxItem | null> {
+    const idx = this.state.notification_outbox.findIndex(x => x.id === id);
+    if (idx === -1) return null;
+    this.state.notification_outbox[idx] = {
+      ...this.state.notification_outbox[idx],
+      ...updates
+    };
+    this.persist();
+    return { ...this.state.notification_outbox[idx] };
+  }
+
+  // =========================================================================
+  // INTELLIDESK 2.0 ENTERPRISE EXTENSIONS: MAJOR INCIDENTS
+  // =========================================================================
+
+  public async getMajorIncidents(): Promise<MajorIncident[]> {
+    return [...this.state.major_incidents].sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+  }
+
+  public async getMajorIncidentById(id: string): Promise<MajorIncident | null> {
+    const found = this.state.major_incidents.find(x => x.incident_id.toLowerCase() === id.toLowerCase());
+    return found ? { ...found } : null;
+  }
+
+  public async createMajorIncident(incident: Omit<MajorIncident, 'incident_id' | 'started_at' | 'updates'> & Partial<MajorIncident>): Promise<MajorIncident> {
+    const newInc: MajorIncident = {
+      incident_id: `INC-MAJ-${new Date().getFullYear()}-${String(this.state.major_incidents.length + 1).padStart(3, '0')}`,
+      title: incident.title,
+      summary: incident.summary,
+      severity: incident.severity || 'SEV-2',
+      status: incident.status || 'INVESTIGATING',
+      commander_id: incident.commander_id || 'EMP-IT-001',
+      affected_services: incident.affected_services || [],
+      business_impact: incident.business_impact || 'Degraded operations',
+      started_at: new Date().toISOString(),
+      mitigated_at: null,
+      resolved_at: null,
+      bridge_url: incident.bridge_url || 'https://bridge.northstar-tech.internal/war-room',
+      updates: [
+        {
+          update_id: `upd-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          author: 'Incident Commander',
+          message: `${incident.severity || 'SEV-2'} declared: ${incident.title}. War room initiated.`,
+          status: incident.status || 'INVESTIGATING'
+        }
+      ]
+    };
+
+    this.state.major_incidents.unshift(newInc);
+    
+    // Auto broadcast in-app notification & outbox
+    await this.addInAppNotification({
+      user_id: 'ALL',
+      title: `MAJOR INCIDENT: ${newInc.severity} - ${newInc.title}`,
+      message: newInc.summary,
+      notification_type: 'MAJOR_INCIDENT_BROADCAST',
+      link_url: '/incidents'
+    });
+
+    await this.queueOutboxNotification({
+      recipient_email: 'it-operations-alerts@northstar-tech.internal',
+      recipient_name: 'IT Incident Management Distribution',
+      subject: `[${newInc.severity} ALERT] ${newInc.title}`,
+      notification_type: 'MAJOR_INCIDENT_BROADCAST',
+      template_id: 'major_incident_alert',
+      template_variables: {
+        incidentId: newInc.incident_id,
+        severity: newInc.severity,
+        title: newInc.title,
+        impact: newInc.business_impact
+      },
+      entity_type: 'MAJOR_INCIDENT',
+      entity_id: newInc.incident_id,
+      delivery_status: 'LOGGED_CONSOLE'
+    });
+
+    this.persist();
+    return { ...newInc };
+  }
+
+  public async addMajorIncidentUpdate(incidentId: string, update: { author: string; message: string; status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED' }): Promise<MajorIncident | null> {
+    const idx = this.state.major_incidents.findIndex(x => x.incident_id.toLowerCase() === incidentId.toLowerCase());
+    if (idx === -1) return null;
+
+    const inc = this.state.major_incidents[idx];
+    inc.updates.unshift({
+      update_id: `upd-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      author: update.author,
+      message: update.message,
+      status: update.status
+    });
+    inc.status = update.status;
+    if (update.status === 'RESOLVED') {
+      inc.resolved_at = new Date().toISOString();
+      inc.mitigated_at = inc.mitigated_at || new Date().toISOString();
+    } else if (update.status === 'MONITORING') {
+      inc.mitigated_at = inc.mitigated_at || new Date().toISOString();
+    }
+
+    this.persist();
+    return { ...inc };
+  }
+
+  // =========================================================================
+  // INTELLIDESK 2.0 ENTERPRISE EXTENSIONS: PROBLEM MANAGEMENT
+  // =========================================================================
+
+  public async getProblems(): Promise<ProblemRecord[]> {
+    return [...this.state.problems].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  public async getProblemById(id: string): Promise<ProblemRecord | null> {
+    const found = this.state.problems.find(x => x.problem_id.toLowerCase() === id.toLowerCase());
+    return found ? { ...found } : null;
+  }
+
+  public async createProblem(problem: Omit<ProblemRecord, 'problem_id' | 'created_at'> & Partial<ProblemRecord>): Promise<ProblemRecord> {
+    const newPrb: ProblemRecord = {
+      problem_id: `PRB-${new Date().getFullYear()}-${String(this.state.problems.length + 1).padStart(3, '0')}`,
+      title: problem.title,
+      description: problem.description,
+      category: problem.category || 'Software',
+      status: problem.status || 'LOGGED',
+      root_cause: problem.root_cause || '',
+      workaround: problem.workaround || '',
+      permanent_fix: problem.permanent_fix || '',
+      related_ticket_ids: problem.related_ticket_ids || [],
+      owner: problem.owner || 'Vikram Patel',
+      created_at: new Date().toISOString(),
+      resolved_at: null
+    };
+
+    this.state.problems.unshift(newPrb);
+    this.persist();
+    return { ...newPrb };
+  }
+
+  public async updateProblem(id: string, updates: Partial<ProblemRecord>): Promise<ProblemRecord | null> {
+    const idx = this.state.problems.findIndex(x => x.problem_id.toLowerCase() === id.toLowerCase());
+    if (idx === -1) return null;
+    this.state.problems[idx] = {
+      ...this.state.problems[idx],
+      ...updates,
+      resolved_at: (updates.status === 'RESOLVED' || updates.status === 'CLOSED') ? (updates.resolved_at || new Date().toISOString()) : this.state.problems[idx].resolved_at
+    };
+    this.persist();
+    return { ...this.state.problems[idx] };
+  }
+
+  // =========================================================================
+  // INTELLIDESK 2.0 ENTERPRISE EXTENSIONS: PRIVILEGED ACCESS
+  // =========================================================================
+
+  public async getPrivilegedAccounts(): Promise<PrivilegedAccount[]> {
+    return [...this.state.privileged_accounts];
+  }
+
+  public async requestPrivilegedElevation(req: { employee_id: string; application_id: string; privileged_role: string; hours: number; justification: string }): Promise<PrivilegedAccount> {
+    const emp = this.state.profiles.find(p => p.employee_id.toLowerCase() === req.employee_id.toLowerCase());
+    const app = this.state.applications.find(a => a.application_id.toLowerCase() === req.application_id.toLowerCase());
+
+    const validUntil = new Date(Date.now() + (req.hours || 4) * 3600000).toISOString();
+    const newPA: PrivilegedAccount = {
+      id: `PA-${String(this.state.privileged_accounts.length + 1).padStart(3, '0')}`,
+      employee_id: req.employee_id,
+      employee_name: emp?.full_name || 'Authorized Engineer',
+      application_id: req.application_id,
+      application_name: app?.application_name || req.application_id,
+      privileged_role: req.privileged_role,
+      elevation_type: 'TIME_BOUND_JIT',
+      valid_until: validUntil,
+      mfa_enforced: true,
+      last_used_at: new Date().toISOString(),
+      risk_level: 'HIGH',
+      certification_status: 'PENDING_REVIEW'
+    };
+
+    this.state.privileged_accounts.unshift(newPA);
+
+    // Audit log
+    await this.logAudit({
+      actor_id: req.employee_id,
+      actor_type: 'USER',
+      action: 'ELEVATE_PRIVILEGED_ACCESS',
+      entity_type: 'PRIVILEGED_ACCOUNT',
+      entity_id: newPA.id,
+      outcome: 'SUCCESS',
+      reason: req.justification,
+      correlation_id: `CORR-ELEV-${Date.now()}`,
+      metadata: { valid_until: validUntil, hours: req.hours }
+    });
+
+    this.persist();
+    return { ...newPA };
+  }
+
+  public async certifyPrivilegedAccount(id: string, status: 'CERTIFIED' | 'FLAGGED'): Promise<PrivilegedAccount | null> {
+    const idx = this.state.privileged_accounts.findIndex(p => p.id === id);
+    if (idx === -1) return null;
+    this.state.privileged_accounts[idx].certification_status = status;
+    
+    await this.logAudit({
+      actor_id: 'EMP-SEC-001',
+      actor_type: 'USER',
+      action: status === 'CERTIFIED' ? 'CERTIFY_PRIVILEGED_ACCOUNT' : 'FLAG_PRIVILEGED_ACCOUNT',
+      entity_type: 'PRIVILEGED_ACCOUNT',
+      entity_id: id,
+      outcome: status === 'CERTIFIED' ? 'SUCCESS' : 'FLAGGED',
+      reason: `Quarterly IAM Privileged Account Recertification: ${status}`,
+      correlation_id: `CORR-CERT-${Date.now()}`
+    });
+
+    this.persist();
+    return { ...this.state.privileged_accounts[idx] };
+  }
+
+  // =========================================================================
+  // INTELLIDESK 2.0 ENTERPRISE EXTENSIONS: RISK INTELLIGENCE REPORT
+  // =========================================================================
+
+  public async getRiskIntelligenceReport(): Promise<RiskIntelligenceReport> {
+    const tickets = this.state.tickets;
+    const accessReqs = this.state.access_requests;
+    const privileged = this.state.privileged_accounts;
+    const profiles = this.state.profiles;
+
+    // SLA breach risk
+    const now = Date.now();
+    const slaBreachRiskCount = tickets.filter(t => {
+      if (t.status === 'RESOLVED' || t.status === 'CLOSED' || t.status === 'CANCELLED') return false;
+      const due = new Date(t.sla_due_at).getTime();
+      return due < (now + 2 * 3600000); // due within 2 hours or overdue
+    }).length;
+
+    // Stale or uncertified privileges
+    const stalePrivilegesCount = privileged.filter(p => p.certification_status === 'FLAGGED' || p.certification_status === 'PENDING_REVIEW').length;
+
+    // Segregation of duties violations (financial analyst with superadmin/system access)
+    let sodViolationsCount = 0;
+    for (const p of privileged) {
+      const emp = profiles.find(e => e.employee_id.toLowerCase() === p.employee_id.toLowerCase());
+      if (emp?.department === 'Finance' && (p.privileged_role.includes('Super Admin') || p.privileged_role.includes('AdministratorAccess'))) {
+        sodViolationsCount++;
+      }
+    }
+
+    // High risk identities
+    const highRiskIdentitiesCount = privileged.filter(p => p.risk_level === 'CRITICAL' || p.risk_level === 'HIGH').length;
+
+    // Compute composite risk scores
+    const iam_risk_score = Math.min(100, Math.round(sodViolationsCount * 25 + stalePrivilegesCount * 12 + highRiskIdentitiesCount * 8));
+    const operational_risk_score = Math.min(100, Math.round(slaBreachRiskCount * 15 + tickets.filter(t => t.priority === 'P1').length * 20));
+    const compliance_risk_score = Math.min(100, Math.round((accessReqs.filter(r => r.risk_level === 'CRITICAL').length * 10) + (stalePrivilegesCount * 14)));
+    const overall_score = Math.min(100, Math.round((iam_risk_score * 0.4) + (operational_risk_score * 0.35) + (compliance_risk_score * 0.25)));
+
+    return {
+      overall_score,
+      iam_risk_score,
+      operational_risk_score,
+      compliance_risk_score,
+      high_risk_identities_count: highRiskIdentitiesCount,
+      sla_breach_risk_count: slaBreachRiskCount,
+      stale_privileges_count: stalePrivilegesCount,
+      sod_violations_count: sodViolationsCount
+    };
+  }
+
 }
 
 // Global singleton instance
